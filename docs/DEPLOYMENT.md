@@ -81,6 +81,8 @@ git push -u origin main
 |--------|------|--------|
 | OPENAI_API_KEY | OpenAI API密钥 | sk-xxxxxxxxxxxx |
 | OPENAI_BASE_URL | OpenAI API基础URL | https://api.openai.com/v1 |
+| DASHSCOPE_API_KEY | 达摩院灵积API密钥 | sk-xxxxxxxxxxxx |
+| DASHSCOPE_BASE_URL | 达摩院灵积API基础URL | https://dashscope.aliyuncs.com/compatible-mode/v1 |
 | PORT | 服务器端口（Vercel会自动设置） | 3000 |
 
 ## 故障排除

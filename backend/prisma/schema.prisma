@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 枚举类型定义
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum AnalysisType {
+  TEXT
+  IMAGE
+}
+
+enum AnalysisStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ConfigType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+}
+
+// 用户表
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      UserRole @default(USER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关系
+  analysisTasks AnalysisTask[]
+  apiLogs       ApiLog[]
+
+  @@map("users")
+}
+
+// 分析任务表
+model AnalysisTask {
+  id        Int                @id @default(autoincrement())
+  userId    Int                @map("user_id")
+  type      AnalysisType
+  content   String?
+  filePath  String?            @map("file_path")
+  status    AnalysisStatus     @default(PENDING)
+  result    String?            // SQLite使用String存储JSON
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+
+  // 关联的用户
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("analysis_tasks")
+}
+
+// 违禁词库表
+model ForbiddenWord {
+  id        Int      @id @default(autoincrement())
+  word      String
+  category  String?
+  severity  Int      @default(1) // 1: 低风险, 2: 中风险, 3: 高风险
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("forbidden_words")
+}
+
+// 系统配置表
+model SystemConfig {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  type      ConfigType @default(STRING)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_configs")
+}
+
+// API调用日志表
+model ApiLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?     @map("user_id")
+  endpoint   String
+  method     String
+  statusCode Int      @map("status_code")
+  duration   Int      // 毫秒
+  userAgent  String?  @map("user_agent")
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // 关联用户（可选）
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("api_logs")
+}
