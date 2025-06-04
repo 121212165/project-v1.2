@@ -23,7 +23,7 @@ interface AppActions {
   initAuth: () => void;
   
   // 文本分析相关
-  analyzeText: (content: string, options?: any) => Promise<void>;
+  analyzeText: (text: string, options?: { sessionId?: string; scenario?: string; useCache?: boolean }) => Promise<void>;
   clearTextAnalysis: () => void;
   
   // 图文分析相关
@@ -94,7 +94,7 @@ const initialState: ExtendedAppState = {
   }
 };
 
-export const useAppStore = create<AppStore>()()
+export const useAppStore = create<AppStore>()(
   devtools(
     persist(
       immer((set, get) => ({
@@ -156,14 +156,19 @@ export const useAppStore = create<AppStore>()()
         },
 
         // 文本分析
-        analyzeText: async (content: string, options?: any) => {
+        analyzeText: async (text: string, options?: { sessionId?: string; scenario?: string; useCache?: boolean }) => {
           set((state) => {
             state.textAnalysis.loading = true;
             state.textAnalysis.error = null;
           });
 
           try {
-            const result = await apiService.analyzeText({ content, options });
+            const result = await apiService.analyzeText({ 
+              text, 
+              sessionId: options?.sessionId,
+              scenario: options?.scenario,
+              useCache: options?.useCache
+            });
             
             set((state) => {
               state.textAnalysis.loading = false;
@@ -173,7 +178,7 @@ export const useAppStore = create<AppStore>()()
             // 添加到历史记录
             get().addToHistory({
               type: 'text',
-              content,
+              content: text,
               result
             });
           } catch (error) {
@@ -360,7 +365,8 @@ export const useAppStore = create<AppStore>()()
     {
       name: 'beauty-ai-app'
     }
-  );
+  )
+);
 
 // 选择器hooks
 export const useAuth = () => useAppStore((state) => state.auth);

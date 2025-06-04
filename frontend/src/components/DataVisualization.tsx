@@ -39,8 +39,7 @@ import {
   Area,
   AreaChart
 } from 'recharts';
-import { useAppStore } from '../store';
-import { useUserStats, useHistory } from '../hooks';
+import { useAppStore, useUserStats, useHistory, useAuth } from '../store';
 import { formatTime } from '../utils';
 import type { AnalysisHistoryItem } from '../types';
 
@@ -78,6 +77,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({ className }) => {
   const { loadHistory, loadUserStats } = useAppStore();
   const userStats = useUserStats();
   const history = useHistory();
+  const auth = useAuth();
 
   // 颜色配置
   const colors = {
@@ -91,6 +91,10 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({ className }) => {
 
   // 生成图表数据
   const generateChartData = (historyItems: AnalysisHistoryItem[]): ChartData[] => {
+    if (!historyItems || !Array.isArray(historyItems)) {
+      return [];
+    }
+    
     const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
     const data: ChartData[] = [];
     
@@ -150,6 +154,11 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({ className }) => {
   // 加载数据
   useEffect(() => {
     const loadData = async () => {
+      if (!auth.isAuthenticated) {
+        setLoading(false);
+        return;
+      }
+      
       setLoading(true);
       try {
         await Promise.all([
@@ -164,11 +173,11 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({ className }) => {
     };
     
     loadData();
-  }, [loadHistory, loadUserStats]);
+  }, [loadHistory, loadUserStats, auth.isAuthenticated]);
 
   // 更新图表数据
   useEffect(() => {
-    if (history.length > 0) {
+    if (history && history.length > 0) {
       setChartData(generateChartData(history));
     }
   }, [history, timeRange]);

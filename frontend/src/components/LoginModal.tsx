@@ -16,7 +16,7 @@ import {
 import { useAppStore } from '@/store';
 
 const { Title, Text } = Typography;
-const { TabPane } = Tabs;
+// TabPane已在Ant Design 5.x中废弃，使用items属性
 
 interface LoginModalProps {
   visible: boolean;
@@ -83,54 +83,60 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel }) => {
           activeKey={activeTab}
           onChange={setActiveTab}
           centered
-        >
-          <TabPane tab="登录" key="login">
-            <Form
-              form={loginForm}
-              onFinish={handleLogin}
-              layout="vertical"
-              size="large"
-            >
-              <Form.Item
-                name="username"
-                rules={[
-                  { required: true, message: '请输入用户名' },
-                  { min: 3, message: '用户名至少3个字符' }
-                ]}
-              >
-                <Input
-                  prefix={<UserOutlined />}
-                  placeholder="用户名"
-                />
-              </Form.Item>
-              
-              <Form.Item
-                name="password"
-                rules={[
-                  { required: true, message: '请输入密码' },
-                  { min: 6, message: '密码至少6个字符' }
-                ]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder="密码"
-                />
-              </Form.Item>
-              
-              <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  loading={loading}
-                  block
+          items={[
+            {
+              key: 'login',
+              label: '登录',
+              children: (
+                <Form
+                  form={loginForm}
+                  onFinish={handleLogin}
+                  layout="vertical"
+                  size="large"
                 >
-                  登录
-                </Button>
-              </Form.Item>
-            </Form>
-          </TabPane>
-          
-          <TabPane tab="注册" key="register">
+                  <Form.Item
+                    name="username"
+                    rules={[
+                      { required: true, message: '请输入用户名' },
+                      { min: 3, message: '用户名至少3个字符' }
+                    ]}
+                  >
+                    <Input
+                      prefix={<UserOutlined />}
+                      placeholder="用户名"
+                    />
+                  </Form.Item>
+                  
+                  <Form.Item
+                    name="password"
+                    rules={[
+                      { required: true, message: '请输入密码' },
+                      { min: 6, message: '密码至少6个字符' }
+                    ]}
+                  >
+                    <Input.Password
+                      prefix={<LockOutlined />}
+                      placeholder="密码"
+                    />
+                  </Form.Item>
+                  
+                  <Form.Item>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      loading={loading}
+                      block
+                    >
+                      登录
+                    </Button>
+                  </Form.Item>
+                </Form>
+              )
+            },
+            {
+              key: 'register',
+              label: '注册',
+              children: (
             <Form
               form={registerForm}
               onFinish={handleRegister}
@@ -210,9 +216,11 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel }) => {
                   注册
                 </Button>
               </Form.Item>
-            </Form>
-          </TabPane>
-        </Tabs>
+                </Form>
+              )
+            }
+          ]}
+        />
         
         <div style={{ textAlign: 'center', marginTop: '20px' }}>
           <Text type="secondary" style={{ fontSize: '12px' }}>

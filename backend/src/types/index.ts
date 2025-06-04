@@ -1,3 +1,15 @@
+// 环境配置类型
+export interface EnvConfig {
+  NODE_ENV: string;
+  PORT: number;
+  OPENROUTER_API_KEY: string;
+  OPENROUTER_SITE_URL: string;
+  OPENROUTER_SITE_NAME: string;
+  LOG_LEVEL: string;
+  JWT_SECRET: string;
+  JWT_EXPIRES_IN: string;
+}
+
 // 用户相关类型
 export interface User {
   id: string;
@@ -221,7 +233,8 @@ export interface ServiceStatsResponse {
 export enum UserRole {
   USER = 'USER',
   MODERATOR = 'MODERATOR',
-  ADMIN = 'ADMIN'
+  ADMIN = 'ADMIN',
+  CREATOR = 'CREATOR'
 }
 
 export interface JWTPayload {

@@ -1,6 +1,6 @@
-import { PrismaClient, User, AnalysisTask, ForbiddenWord, SystemConfig, ApiLog } from '../generated/prisma';
-import { prisma } from '../config/database';
-import { logger } from '../utils/logger';
+import { PrismaClient, User, AnalysisTask, ForbiddenWord, SystemConfig, ApiLog } from '../generated/prisma/index.js';
+import { prisma } from '../config/database.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * 基础数据库服务类

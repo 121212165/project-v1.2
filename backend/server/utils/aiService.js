@@ -1,13 +1,14 @@
-import { createSDK } from 'dashscope-node';
+import OpenAI from 'openai';
 
 // 配置模型名称常量
 const MODELS = {
-    TEXT_ANALYSIS: 'qwen-turbo',
-    IMAGE_ANALYSIS: 'qwen-vl-plus'
+    TEXT_ANALYSIS: 'deepseek/deepseek-r1',
+    IMAGE_ANALYSIS: 'deepseek/deepseek-r1'
 };
 
-const DashScopeAPI = createSDK({
-    accessToken: process.env.DASHSCOPE_TOKEN,
+const openai = new OpenAI({
+    apiKey: process.env.OPENROUTER_API_KEY,
+    baseURL: 'https://openrouter.ai/api/v1',
 });
 
 export class AIService {
@@ -48,19 +49,15 @@ export class AIService {
 }`;
 
         try {
-            const result = await DashScopeAPI.chat.completion.request({
+            const result = await openai.chat.completions.create({
                 model: MODELS.TEXT_ANALYSIS,
-                input: {
-                    messages: [
-                        { role: "system", content: systemPrompt },
-                        { role: "user", content: `请分析这段美妆文案：\n\n${text}` }
-                    ]
-                },
-                parameters: {
-                    temperature: 0.7
-                }
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: `请分析这段美妆文案：\n\n${text}` }
+                ],
+                temperature: 0.7
             });
-            return JSON.parse(result.output.text);
+            return JSON.parse(result.choices[0].message.content || '{}');
         } catch (error) {
             console.error('AI分析失败:', error?.response?.data || error.message || error);
             throw new Error('AI分析服务暂时不可用');
@@ -94,25 +91,21 @@ export class AIService {
 }`;
 
         try {
-            const result = await DashScopeAPI.chat.completion.request({
+            const result = await openai.chat.completions.create({
                 model: MODELS.IMAGE_ANALYSIS,
-                input: {
-                    messages: [
-                        { role: "system", content: systemPrompt },
-                        {
-                            role: "user",
-                            content: [
-                                { type: "text", text: `请分析以下图片和文字内容：\n\n${text}` },
-                                { type: "image_url", image_url: { url: imageUrl } }
-                            ]
-                        }
-                    ]
-                },
-                parameters: {
-                    temperature: 0.7
-                }
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    {
+                        role: "user",
+                        content: [
+                            { type: "text", text: `请分析以下图片和文字内容：\n\n${text}` },
+                            { type: "image_url", image_url: { url: imageUrl } }
+                        ]
+                    }
+                ],
+                temperature: 0.7
             });
-            return JSON.parse(result.output.text);
+            return JSON.parse(result.choices[0].message.content || '{}');
         } catch (error) {
             console.error('图文分析失败:', error?.response?.data || error.message || error);
             throw new Error('图文分析服务暂时不可用');

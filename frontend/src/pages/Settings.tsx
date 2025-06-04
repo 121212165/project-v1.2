@@ -44,7 +44,7 @@ import { useAppStore } from '@/store';
 const { Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
-const { TabPane } = Tabs;
+// TabPane已在Ant Design 5.x中废弃，使用items属性
 const { TextArea } = Input;
 
 interface UserProfile {
@@ -297,56 +297,55 @@ const Settings: React.FC = () => {
             onChange={setActiveTab}
             tabPosition="left"
             style={{ minHeight: '600px' }}
-          >
-            {/* 个人信息 */}
-            <TabPane
-              tab={
-                <Space>
-                  <UserOutlined />
-                  个人信息
-                </Space>
-              }
-              key="profile"
-            >
-              <div style={{ maxWidth: '600px' }}>
-                <Title level={4}>个人信息</Title>
-                <Form
-                  form={profileForm}
-                  layout="vertical"
-                  onFinish={handleProfileSave}
-                  requiredMark={false}
-                >
-                  {/* 头像上传 */}
-                  <Form.Item label="头像">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                      <Avatar
-                        size={80}
-                        src={avatarUrl}
-                        icon={<UserOutlined />}
-                      />
-                      <Upload
-                        name="avatar"
-                        listType="picture-card"
-                        className="avatar-uploader"
-                        showUploadList={false}
-                        action="/api/upload/avatar"
-                        beforeUpload={(file) => {
-                          const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
-                          if (!isJpgOrPng) {
-                            message.error('只能上传 JPG/PNG 格式的图片!');
-                          }
-                          const isLt2M = file.size / 1024 / 1024 < 2;
-                          if (!isLt2M) {
-                            message.error('图片大小不能超过 2MB!');
-                          }
-                          return isJpgOrPng && isLt2M;
-                        }}
-                        onChange={handleAvatarChange}
-                      >
-                        {uploadButton}
-                      </Upload>
-                    </div>
-                  </Form.Item>
+            items={[
+              {
+                key: 'profile',
+                label: (
+                  <Space>
+                    <UserOutlined />
+                    个人信息
+                  </Space>
+                ),
+                children: (
+                  <div style={{ maxWidth: '600px' }}>
+                    <Title level={4}>个人信息</Title>
+                    <Form
+                      form={profileForm}
+                      layout="vertical"
+                      onFinish={handleProfileSave}
+                      requiredMark={false}
+                    >
+                      {/* 头像上传 */}
+                      <Form.Item label="头像">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <Avatar
+                            size={80}
+                            src={avatarUrl}
+                            icon={<UserOutlined />}
+                          />
+                          <Upload
+                            name="avatar"
+                            listType="picture-card"
+                            className="avatar-uploader"
+                            showUploadList={false}
+                            action="/api/upload/avatar"
+                            beforeUpload={(file) => {
+                              const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+                              if (!isJpgOrPng) {
+                                message.error('只能上传 JPG/PNG 格式的图片!');
+                              }
+                              const isLt2M = file.size / 1024 / 1024 < 2;
+                              if (!isLt2M) {
+                                message.error('图片大小不能超过 2MB!');
+                              }
+                              return isJpgOrPng && isLt2M;
+                            }}
+                            onChange={handleAvatarChange}
+                          >
+                            {uploadButton}
+                          </Upload>
+                        </div>
+                      </Form.Item>
 
                   <Row gutter={16}>
                     <Col span={12}>
@@ -420,19 +419,18 @@ const Settings: React.FC = () => {
                     </Button>
                   </Form.Item>
                 </Form>
-              </div>
-            </TabPane>
-
-            {/* 安全设置 */}
-            <TabPane
-              tab={
-                <Space>
-                  <SecurityScanOutlined />
-                  安全设置
-                </Space>
-              }
-              key="security"
-            >
+                  </div>
+                )
+              },
+              {
+                key: 'security',
+                label: (
+                  <Space>
+                    <SecurityScanOutlined />
+                    安全设置
+                  </Space>
+                ),
+                children: (
               <div style={{ maxWidth: '600px' }}>
                 <Title level={4}>安全设置</Title>
                 
@@ -601,19 +599,18 @@ const Settings: React.FC = () => {
                     </Button>
                   </Form.Item>
                 </Form>
-              </div>
-            </TabPane>
-
-            {/* 偏好设置 */}
-            <TabPane
-              tab={
-                <Space>
-                  <SettingOutlined />
-                  偏好设置
-                </Space>
-              }
-              key="preferences"
-            >
+                  </div>
+                )
+              },
+              {
+                key: 'preferences',
+                label: (
+                  <Space>
+                    <SettingOutlined />
+                    偏好设置
+                  </Space>
+                ),
+                children: (
               <div style={{ maxWidth: '600px' }}>
                 <Title level={4}>偏好设置</Title>
                 <Form
@@ -715,19 +712,18 @@ const Settings: React.FC = () => {
                     </Button>
                   </Form.Item>
                 </Form>
-              </div>
-            </TabPane>
-
-            {/* 数据管理 */}
-            <TabPane
-              tab={
-                <Space>
-                  <ExportOutlined />
-                  数据管理
-                </Space>
-              }
-              key="data"
-            >
+                  </div>
+                )
+              },
+              {
+                key: 'data',
+                label: (
+                  <Space>
+                    <ExportOutlined />
+                    数据管理
+                  </Space>
+                ),
+                children: (
               <div style={{ maxWidth: '600px' }}>
                 <Title level={4}>数据管理</Title>
                 
@@ -760,9 +756,11 @@ const Settings: React.FC = () => {
                     删除账户
                   </Button>
                 </Card>
-              </div>
-            </TabPane>
-          </Tabs>
+                  </div>
+                )
+              }
+            ]}
+          />
         </Card>
       </Content>
     </Layout>

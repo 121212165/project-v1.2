@@ -19,6 +19,7 @@ enum UserRole {
   USER
   ADMIN
   MODERATOR
+  CREATOR
 }
 
 enum AnalysisType {

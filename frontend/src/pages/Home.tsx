@@ -38,7 +38,6 @@ import DataVisualization from '@/components/DataVisualization';
 
 const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
-const { TabPane } = Tabs;
 
 const Home: React.FC = () => {
   const navigate = useNavigate();

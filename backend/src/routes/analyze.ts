@@ -10,10 +10,10 @@ import {
   getUserSessions,
   getServiceStats,
   cleanupService
-} from '../controllers/analyzeController';
-import { validateRequest } from '../middleware/validation';
-import { authenticateToken } from '../middleware/auth';
-import { logInfo } from '../utils/logger';
+} from '../controllers/analyzeController.js';
+import { validateRequest } from '../middleware/validation.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { logInfo } from '../utils/logger.js';
 
 const router = express.Router();
 

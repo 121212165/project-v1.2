@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { AIService } from '../services/aiService';
-import { AnalysisTaskService } from '../services/analysisTaskService';
-import { ConversationService } from '../services/conversationService';
-import { logInfo, logError } from '../utils/logger';
-import { TextAnalysisResponse, ImageAnalysisResponse } from '../types';
+import { AIService } from '../services/aiService.js';
+import { AnalysisTaskService } from '../services/analysisTaskService.js';
+import { ConversationService } from '../services/conversationService.js';
+import { logInfo, logError } from '../utils/logger.js';
+import { TextAnalysisResponse, ImageAnalysisResponse } from '../types/index.js';
 import path from 'path';
 import fs from 'fs/promises';
 

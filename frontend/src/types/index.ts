@@ -8,12 +8,10 @@ export interface ApiResponse<T = any> {
 
 // 分析请求类型
 export interface TextAnalysisRequest {
-  content: string;
-  options?: {
-    checkForbiddenWords?: boolean;
-    sentimentAnalysis?: boolean;
-    brandRiskAssessment?: boolean;
-  };
+  text: string;
+  sessionId?: string;
+  scenario?: string;
+  useCache?: boolean;
 }
 
 export interface ImageAnalysisRequest {

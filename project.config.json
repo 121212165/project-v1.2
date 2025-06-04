@@ -1,0 +1,480 @@
+{
+  "project": {
+    "name": "Task Management System",
+    "version": "1.0.0",
+    "description": "A comprehensive task management system with frontend and backend",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/your-org/task-management"
+    },
+    "license": "MIT",
+    "authors": [
+      {
+        "name": "Development Team",
+        "email": "dev@company.com"
+      }
+    ]
+  },
+  "environments": {
+    "development": {
+      "database": {
+        "host": "localhost",
+        "port": 5432,
+        "name": "taskdb_dev",
+        "ssl": false
+      },
+      "redis": {
+        "host": "localhost",
+        "port": 6379,
+        "db": 0
+      },
+      "api": {
+        "host": "localhost",
+        "port": 3001,
+        "cors": {
+          "origin": ["http://localhost:3000"],
+          "credentials": true
+        }
+      },
+      "frontend": {
+        "host": "localhost",
+        "port": 3000,
+        "proxy": "http://localhost:3001"
+      },
+      "logging": {
+        "level": "debug",
+        "format": "dev"
+      }
+    },
+    "testing": {
+      "database": {
+        "host": "localhost",
+        "port": 5432,
+        "name": "taskdb_test",
+        "ssl": false
+      },
+      "redis": {
+        "host": "localhost",
+        "port": 6379,
+        "db": 1
+      },
+      "api": {
+        "host": "localhost",
+        "port": 3002,
+        "cors": {
+          "origin": ["http://localhost:3001"],
+          "credentials": true
+        }
+      },
+      "logging": {
+        "level": "warn",
+        "format": "combined"
+      }
+    },
+    "production": {
+      "database": {
+        "host": "${DB_HOST}",
+        "port": "${DB_PORT}",
+        "name": "${DB_NAME}",
+        "ssl": true
+      },
+      "redis": {
+        "host": "${REDIS_HOST}",
+        "port": "${REDIS_PORT}",
+        "password": "${REDIS_PASSWORD}"
+      },
+      "api": {
+        "host": "0.0.0.0",
+        "port": "${PORT}",
+        "cors": {
+          "origin": ["${FRONTEND_URL}"],
+          "credentials": true
+        }
+      },
+      "logging": {
+        "level": "error",
+        "format": "combined"
+      }
+    }
+  },
+  "tools": {
+    "linting": {
+      "eslint": {
+        "enabled": true,
+        "configFile": ".eslintrc.js",
+        "extensions": [".js", ".ts", ".tsx"],
+        "ignorePaths": ["node_modules", "dist", "build"]
+      },
+      "prettier": {
+        "enabled": true,
+        "configFile": ".prettierrc",
+        "extensions": [".js", ".ts", ".tsx", ".json", ".md"]
+      }
+    },
+    "typeChecking": {
+      "typescript": {
+        "enabled": true,
+        "configFile": "tsconfig.json",
+        "strictMode": true
+      }
+    },
+    "testing": {
+      "jest": {
+        "enabled": true,
+        "configFile": "jest.config.js",
+        "coverage": {
+          "enabled": true,
+          "threshold": {
+            "global": {
+              "branches": 80,
+              "functions": 80,
+              "lines": 80,
+              "statements": 80
+            }
+          }
+        }
+      },
+      "e2e": {
+        "enabled": true,
+        "framework": "cypress",
+        "baseUrl": "http://localhost:3000"
+      }
+    },
+    "security": {
+      "audit": {
+        "enabled": true,
+        "tools": ["npm audit", "yarn audit"]
+      },
+      "secretScanning": {
+        "enabled": true,
+        "patterns": [
+          "password",
+          "secret",
+          "key",
+          "token",
+          "api_key"
+        ]
+      }
+    },
+    "bundling": {
+      "webpack": {
+        "enabled": true,
+        "configFile": "webpack.config.js"
+      },
+      "vite": {
+        "enabled": false,
+        "configFile": "vite.config.js"
+      }
+    },
+    "monitoring": {
+      "performance": {
+        "enabled": true,
+        "tools": ["lighthouse", "web-vitals"]
+      },
+      "errorTracking": {
+        "enabled": true,
+        "service": "sentry",
+        "dsn": "${SENTRY_DSN}"
+      }
+    }
+  },
+  "dependencies": {
+    "frontend": {
+      "framework": "react",
+      "version": "^18.0.0",
+      "ui": "antd",
+      "stateManagement": "redux-toolkit",
+      "routing": "react-router-dom",
+      "httpClient": "axios",
+      "testing": ["@testing-library/react", "@testing-library/jest-dom"]
+    },
+    "backend": {
+      "framework": "express",
+      "version": "^4.18.0",
+      "database": "prisma",
+      "authentication": "jsonwebtoken",
+      "validation": "joi",
+      "logging": "winston",
+      "testing": ["jest", "supertest"]
+    },
+    "shared": {
+      "typescript": "^5.0.0",
+      "eslint": "^8.0.0",
+      "prettier": "^3.0.0"
+    }
+  },
+  "scripts": {
+    "development": {
+      "setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-development.ps1",
+      "start": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+      "dev:frontend": "cd frontend && npm start",
+      "dev:backend": "cd backend && npm run dev",
+      "db:migrate": "cd backend && npx prisma migrate dev",
+      "db:seed": "cd backend && npx prisma db seed",
+      "db:studio": "cd backend && npx prisma studio"
+    },
+    "quality": {
+      "check": "powershell -ExecutionPolicy Bypass -File scripts/quality-check.ps1",
+      "lint": "powershell -ExecutionPolicy Bypass -File scripts/quality-check.ps1 -Target all -CheckType lint",
+      "test": "powershell -ExecutionPolicy Bypass -File scripts/quality-check.ps1 -Target all -CheckType test",
+      "build": "powershell -ExecutionPolicy Bypass -File scripts/quality-check.ps1 -Target all -CheckType build",
+      "fix": "powershell -ExecutionPolicy Bypass -File scripts/quality-check.ps1 -Target all -AutoFix"
+    },
+    "knowledge": {
+      "index": "powershell -ExecutionPolicy Bypass -File scripts/knowledge-manager.ps1 -Action index",
+      "search": "powershell -ExecutionPolicy Bypass -File scripts/knowledge-manager.ps1 -Action search",
+      "add": "powershell -ExecutionPolicy Bypass -File scripts/knowledge-manager.ps1 -Action add",
+      "validate": "powershell -ExecutionPolicy Bypass -File scripts/knowledge-manager.ps1 -Action validate",
+      "export": "powershell -ExecutionPolicy Bypass -File scripts/knowledge-manager.ps1 -Action export"
+    },
+    "deployment": {
+      "build:frontend": "cd frontend && npm run build",
+      "build:backend": "cd backend && npm run build",
+      "build:all": "npm run build:frontend && npm run build:backend",
+      "deploy:staging": "echo 'Deploy to staging environment'",
+      "deploy:production": "echo 'Deploy to production environment'"
+    }
+  },
+  "git": {
+    "hooks": {
+      "preCommit": [
+        "lint-staged",
+        "npm run quality:lint",
+        "npm run quality:test"
+      ],
+      "commitMsg": [
+        "commitlint"
+      ],
+      "prePush": [
+        "npm run quality:build"
+      ]
+    },
+    "branches": {
+      "main": {
+        "protected": true,
+        "requirePR": true,
+        "requireReviews": 2
+      },
+      "develop": {
+        "protected": true,
+        "requirePR": true,
+        "requireReviews": 1
+      },
+      "feature/*": {
+        "protected": false,
+        "requirePR": false
+      },
+      "hotfix/*": {
+        "protected": false,
+        "requirePR": true,
+        "requireReviews": 1
+      }
+    },
+    "commitConvention": {
+      "types": [
+        "feat",
+        "fix",
+        "docs",
+        "style",
+        "refactor",
+        "test",
+        "chore",
+        "perf",
+        "ci",
+        "build"
+      ],
+      "scopes": [
+        "frontend",
+        "backend",
+        "api",
+        "ui",
+        "db",
+        "auth",
+        "config",
+        "docs",
+        "test"
+      ]
+    }
+  },
+  "ci": {
+    "pipeline": {
+      "stages": [
+        "install",
+        "lint",
+        "test",
+        "build",
+        "security",
+        "deploy"
+      ],
+      "triggers": {
+        "push": ["main", "develop"],
+        "pullRequest": ["main", "develop"]
+      }
+    },
+    "environments": {
+      "staging": {
+        "branch": "develop",
+        "autoDeployment": true
+      },
+      "production": {
+        "branch": "main",
+        "autoDeployment": false,
+        "requireApproval": true
+      }
+    }
+  },
+  "monitoring": {
+    "metrics": {
+      "performance": {
+        "enabled": true,
+        "tools": ["lighthouse", "web-vitals"],
+        "thresholds": {
+          "fcp": 2000,
+          "lcp": 4000,
+          "cls": 0.1,
+          "fid": 100
+        }
+      },
+      "uptime": {
+        "enabled": true,
+        "interval": 60,
+        "endpoints": [
+          "/api/health",
+          "/api/status"
+        ]
+      }
+    },
+    "logging": {
+      "levels": {
+        "development": "debug",
+        "testing": "warn",
+        "production": "error"
+      },
+      "transports": {
+        "console": {
+          "enabled": true,
+          "format": "dev"
+        },
+        "file": {
+          "enabled": true,
+          "path": "logs",
+          "maxSize": "10MB",
+          "maxFiles": 5
+        },
+        "remote": {
+          "enabled": false,
+          "service": "elasticsearch",
+          "endpoint": "${LOG_ENDPOINT}"
+        }
+      }
+    },
+    "alerts": {
+      "channels": {
+        "email": {
+          "enabled": true,
+          "recipients": ["dev@company.com"]
+        },
+        "slack": {
+          "enabled": false,
+          "webhook": "${SLACK_WEBHOOK}"
+        }
+      },
+      "rules": [
+        {
+          "name": "High Error Rate",
+          "condition": "error_rate > 5%",
+          "severity": "critical"
+        },
+        {
+          "name": "Slow Response Time",
+          "condition": "response_time > 2000ms",
+          "severity": "warning"
+        },
+        {
+          "name": "Database Connection Failed",
+          "condition": "db_connection_failed",
+          "severity": "critical"
+        }
+      ]
+    }
+  },
+  "security": {
+    "authentication": {
+      "jwt": {
+        "algorithm": "HS256",
+        "expiresIn": "24h",
+        "refreshTokenExpiresIn": "7d"
+      },
+      "passwordPolicy": {
+        "minLength": 8,
+        "requireUppercase": true,
+        "requireLowercase": true,
+        "requireNumbers": true,
+        "requireSpecialChars": true
+      }
+    },
+    "cors": {
+      "development": {
+        "origin": ["http://localhost:3000"],
+        "credentials": true
+      },
+      "production": {
+        "origin": ["${FRONTEND_URL}"],
+        "credentials": true
+      }
+    },
+    "rateLimit": {
+      "windowMs": 900000,
+      "max": 100,
+      "message": "Too many requests from this IP"
+    },
+    "headers": {
+      "contentSecurityPolicy": true,
+      "hsts": true,
+      "noSniff": true,
+      "xssFilter": true,
+      "referrerPolicy": "same-origin"
+    }
+  },
+  "performance": {
+    "caching": {
+      "redis": {
+        "enabled": true,
+        "ttl": 3600
+      },
+      "browser": {
+        "enabled": true,
+        "maxAge": 86400
+      }
+    },
+    "compression": {
+      "enabled": true,
+      "level": 6,
+      "threshold": 1024
+    },
+    "bundleAnalysis": {
+      "enabled": true,
+      "maxSize": {
+        "js": "500KB",
+        "css": "100KB"
+      }
+    }
+  },
+  "documentation": {
+    "api": {
+      "enabled": true,
+      "tool": "swagger",
+      "path": "/api-docs"
+    },
+    "knowledgeBase": {
+      "enabled": true,
+      "path": "docs/knowledge-base",
+      "autoIndex": true
+    },
+    "changelog": {
+      "enabled": true,
+      "format": "keepachangelog",
+      "path": "CHANGELOG.md"
+    }
+  }
+}

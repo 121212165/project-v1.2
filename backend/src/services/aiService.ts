@@ -1,4 +1,4 @@
-import { createSDK } from '@dashscope/core';
+import OpenAI from 'openai';
 import { appConfig } from '../config/index.js';
 import { TextAnalysisResponse, ImageAnalysisResponse } from '../types/index.js';
 import { logInfo, logError } from '../utils/logger.js';
@@ -6,9 +6,14 @@ import { PromptService } from './promptService.js';
 import { ConversationService } from './conversationService.js';
 import { CacheService } from './cacheService.js';
 
-// 初始化 DashScope SDK
-const DashScopeAPI = createSDK({
-  accessToken: appConfig.ai.dashscopeToken,
+// 初始化 OpenRouter API
+const openai = new OpenAI({
+  apiKey: appConfig.ai.apiKey,
+  baseURL: appConfig.ai.baseURL,
+  defaultHeaders: {
+    'HTTP-Referer': appConfig.ai.siteInfo.url, // 用于OpenRouter排行榜
+    'X-Title': appConfig.ai.siteInfo.name, // 应用名称显示在OpenRouter排行榜
+  },
 });
 
 // 重试配置
@@ -76,21 +81,25 @@ export class AIService {
 
       // 执行AI分析（带重试机制）
       const result = await this.executeWithRetry(async () => {
-        const response = await DashScopeAPI.chat.completion.request({
+        const response = await openai.chat.completions.create({
           model: appConfig.ai.models.textAnalysis,
-          input: {
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: `请分析这段美妆文案：\n\n${text}` }
-            ]
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `请分析这段美妆文案：\n\n${text}` }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000,
+          // OpenRouter特有参数
+          route: appConfig.ai.routing.enableFallback ? 'fallback' : undefined,
+          provider: {
+            require_parameters: appConfig.ai.routing.requireParameters,
+            data_collection: appConfig.ai.routing.dataCollection
           },
-          parameters: {
-            temperature: 0.7,
-            max_tokens: 2000
-          }
+          // 为用户提供稳定标识符，用于检测和防止滥用
+          user: sessionId ? `session_${sessionId}` : `anonymous_${Date.now()}`
         });
         
-        return response.output.text;
+        return response.choices[0].message.content || '';
       }, { ...DEFAULT_RETRY_CONFIG, ...retryConfig });
 
       // 验证和解析响应
@@ -247,18 +256,22 @@ export class AIService {
 
         messages.push(userMessage);
 
-        const response = await DashScopeAPI.chat.completion.request({
+        const response = await openai.chat.completions.create({
           model: appConfig.ai.models.imageAnalysis,
-          input: {
-            messages
+          messages,
+          temperature: 0.7,
+          max_tokens: 2000,
+          // OpenRouter特有参数
+          route: appConfig.ai.routing.enableFallback ? 'fallback' : undefined,
+          provider: {
+            require_parameters: appConfig.ai.routing.requireParameters,
+            data_collection: appConfig.ai.routing.dataCollection
           },
-          parameters: {
-            temperature: 0.7,
-            max_tokens: 2000
-          }
+          // 为用户提供稳定标识符，用于检测和防止滥用
+          user: sessionId ? `session_${sessionId}` : `anonymous_${Date.now()}`
         });
         
-        return response.output.text;
+        return response.choices[0].message.content || '';
       }, { ...DEFAULT_RETRY_CONFIG, ...retryConfig });
 
       // 验证和解析响应
@@ -523,20 +536,16 @@ export class AIService {
     
     try {
       // 检查AI服务
-      const result = await DashScopeAPI.chat.completion.request({
+      const result = await openai.chat.completions.create({
         model: appConfig.ai.models.textAnalysis,
-        input: {
-          messages: [
-            { role: "user", content: "健康检查" }
-          ]
-        },
-        parameters: {
-          temperature: 0.1,
-          max_tokens: 10
-        }
+        messages: [
+          { role: "user", content: "健康检查" }
+        ],
+        temperature: 0.1,
+        max_tokens: 10
       });
       
-      services.ai = !!result.output.text;
+      services.ai = !!result.choices[0].message.content;
     } catch (error) {
       logError('AI服务健康检查失败', error);
     }

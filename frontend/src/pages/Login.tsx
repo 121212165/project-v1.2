@@ -26,7 +26,7 @@ import { useAppStore } from '@/store';
 
 const { Content } = Layout;
 const { Title, Text, Link } = Typography;
-const { TabPane } = Tabs;
+// TabPane已在Ant Design 5.x中废弃，使用items属性
 
 interface LoginFormData {
   username: string;
@@ -117,12 +117,15 @@ const Login: React.FC = () => {
               {/* 登录/注册表单 */}
               <Tabs
                 activeKey={activeTab}
-                onChange={handleTabChange}
+                onChange={setActiveTab}
                 centered
                 size="large"
                 style={{ marginBottom: '24px' }}
-              >
-                <TabPane tab="登录" key="login">
+                items={[
+                  {
+                    key: 'login',
+                    label: '登录',
+                    children: (
                   <Form
                     form={loginForm}
                     name="login"
@@ -186,9 +189,12 @@ const Login: React.FC = () => {
                       </Button>
                     </Form.Item>
                   </Form>
-                </TabPane>
-
-                <TabPane tab="注册" key="register">
+                    )
+                  },
+                  {
+                    key: 'register',
+                    label: '注册',
+                    children: (
                   <Form
                     form={registerForm}
                     name="register"
@@ -301,8 +307,10 @@ const Login: React.FC = () => {
                       </Button>
                     </Form.Item>
                   </Form>
-                </TabPane>
-              </Tabs>
+                    )
+                  }
+                ]}
+              />
 
               <Divider style={{ margin: '24px 0' }}>
                 <Text type="secondary">其他登录方式</Text>
