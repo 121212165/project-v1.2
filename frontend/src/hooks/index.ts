@@ -4,6 +4,9 @@ import { useAppStore } from '../store';
 import { apiService } from '../services/api';
 import type { TextAnalysisRequest, ImageAnalysisRequest } from '../types';
 
+// 导出其他hooks
+export { useTextAnalysisForm } from './useTextAnalysisForm';
+
 // 文本分析hook
 export const useTextAnalysis = () => {
   const { setTextAnalysisResult, setTextAnalysisLoading, textAnalysisLoading } = useAppStore();

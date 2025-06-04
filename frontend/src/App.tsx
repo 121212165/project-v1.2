@@ -2,10 +2,12 @@ import React from 'react';
 import { ConfigProvider, App as AntdApp } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { MessageContext } from '@/hooks/useMessage';
 import Home from '@/pages/Home';
 import Login from '@/pages/Login';
 import History from '@/pages/History';
 import Settings from '@/pages/Settings';
+import DeepSeek from '@/pages/DeepSeek';
 import '@/App.css';
 
 // Ant Design 主题配置
@@ -39,6 +41,32 @@ const theme = {
   },
 };
 
+const AppContent: React.FC = () => {
+  const { message } = AntdApp.useApp();
+  
+  return (
+    <MessageContext.Provider value={message}>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
+        <div className="App">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/deepseek" element={<DeepSeek />} />
+            <Route path="*" element={<Home />} />
+          </Routes>
+        </div>
+      </Router>
+    </MessageContext.Provider>
+  );
+};
+
 const App: React.FC = () => {
   return (
     <ConfigProvider
@@ -46,17 +74,7 @@ const App: React.FC = () => {
       theme={theme}
     >
       <AntdApp>
-        <Router>
-          <div className="App">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/history" element={<History />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="*" element={<Home />} />
-            </Routes>
-          </div>
-        </Router>
+        <AppContent />
       </AntdApp>
     </ConfigProvider>
   );

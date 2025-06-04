@@ -1,0 +1,447 @@
+/**
+ * 全局样式文件
+ */
+
+/* 重置默认样式 */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol';
+  font-size: 14px;
+  line-height: 1.5715;
+  color: rgba(0, 0, 0, 0.85);
+  background-color: #fff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  height: 100%;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 深色主题滚动条 */
+.dark ::-webkit-scrollbar-track {
+  background: #2f2f2f;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+/* 代码编辑器样式 */
+.monaco-editor {
+  border-radius: 6px;
+}
+
+.monaco-editor .margin {
+  background-color: transparent !important;
+}
+
+/* 响应查看器样式 */
+.response-viewer {
+  height: 100%;
+}
+
+.response-viewer .ant-tabs-content-holder {
+  overflow: auto;
+}
+
+/* 请求构建器样式 */
+.request-builder {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.request-builder .ant-card {
+  margin-bottom: 16px;
+}
+
+.request-builder .ant-card:last-child {
+  margin-bottom: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.request-builder .ant-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 键值对编辑器样式 */
+.key-value-editor {
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.key-value-editor .ant-table {
+  margin: 0;
+}
+
+.key-value-editor .ant-table-thead > tr > th {
+  background-color: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 8px 12px;
+  font-weight: 600;
+}
+
+.key-value-editor .ant-table-tbody > tr > td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.key-value-editor .ant-table-tbody > tr:last-child > td {
+  border-bottom: none;
+}
+
+.key-value-editor .ant-input {
+  border: none;
+  box-shadow: none;
+  padding: 4px 0;
+}
+
+.key-value-editor .ant-input:focus {
+  border: none;
+  box-shadow: none;
+}
+
+.key-value-editor .ant-checkbox-wrapper {
+  margin: 0;
+}
+
+/* 深色主题键值对编辑器 */
+.dark .key-value-editor {
+  border-color: #434343;
+}
+
+.dark .key-value-editor .ant-table-thead > tr > th {
+  background-color: #262626;
+  border-bottom-color: #434343;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.dark .key-value-editor .ant-table-tbody > tr > td {
+  border-bottom-color: #434343;
+  background-color: #1f1f1f;
+}
+
+/* 状态标签样式 */
+.status-tag {
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+.status-tag.success {
+  background-color: #f6ffed;
+  border-color: #b7eb8f;
+  color: #52c41a;
+}
+
+.status-tag.warning {
+  background-color: #fff7e6;
+  border-color: #ffd591;
+  color: #fa8c16;
+}
+
+.status-tag.error {
+  background-color: #fff2f0;
+  border-color: #ffccc7;
+  color: #ff4d4f;
+}
+
+/* 方法标签样式 */
+.method-tag {
+  font-weight: 600;
+  border-radius: 4px;
+  min-width: 60px;
+  text-align: center;
+}
+
+.method-tag.get {
+  background-color: #e6f7ff;
+  border-color: #91d5ff;
+  color: #1890ff;
+}
+
+.method-tag.post {
+  background-color: #f6ffed;
+  border-color: #b7eb8f;
+  color: #52c41a;
+}
+
+.method-tag.put {
+  background-color: #fff7e6;
+  border-color: #ffd591;
+  color: #fa8c16;
+}
+
+.method-tag.delete {
+  background-color: #fff2f0;
+  border-color: #ffccc7;
+  color: #ff4d4f;
+}
+
+.method-tag.patch {
+  background-color: #f9f0ff;
+  border-color: #d3adf7;
+  color: #722ed1;
+}
+
+.method-tag.head {
+  background-color: #e6fffb;
+  border-color: #87e8de;
+  color: #13c2c2;
+}
+
+.method-tag.options {
+  background-color: #fff0f6;
+  border-color: #ffadd2;
+  color: #eb2f96;
+}
+
+/* 加载动画 */
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.loading-spinner .ant-spin {
+  font-size: 24px;
+}
+
+/* 空状态样式 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: #999;
+}
+
+.empty-state .empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.empty-state .empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #666;
+}
+
+.empty-state .empty-description {
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 400px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .request-builder .ant-row {
+    flex-direction: column;
+  }
+  
+  .request-builder .ant-col {
+    width: 100% !important;
+    margin-bottom: 16px;
+  }
+  
+  .key-value-editor .ant-table {
+    font-size: 12px;
+  }
+  
+  .key-value-editor .ant-table-thead > tr > th,
+  .key-value-editor .ant-table-tbody > tr > td {
+    padding: 6px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .request-builder {
+    padding: 8px;
+  }
+  
+  .request-builder .ant-card {
+    margin-bottom: 8px;
+  }
+  
+  .empty-state {
+    padding: 40px 16px;
+  }
+  
+  .empty-state .empty-icon {
+    font-size: 48px;
+  }
+}
+
+/* 打印样式 */
+@media print {
+  .ant-layout-sider,
+  .ant-layout-header,
+  .ant-btn,
+  .ant-dropdown {
+    display: none !important;
+  }
+  
+  .ant-layout-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .request-builder .ant-card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  .ant-btn {
+    border-width: 2px;
+  }
+  
+  .ant-input,
+  .ant-select-selector {
+    border-width: 2px;
+  }
+  
+  .key-value-editor {
+    border-width: 2px;
+  }
+}
+
+/* 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 焦点可见性 */
+.ant-btn:focus-visible,
+.ant-input:focus-visible,
+.ant-select:focus-visible {
+  outline: 2px solid #1890ff;
+  outline-offset: 2px;
+}
+
+/* 自定义工具提示样式 */
+.ant-tooltip {
+  max-width: 300px;
+}
+
+.ant-tooltip-inner {
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* 自定义模态框样式 */
+.ant-modal {
+  border-radius: 8px;
+}
+
+.ant-modal-header {
+  border-radius: 8px 8px 0 0;
+}
+
+.ant-modal-footer {
+  border-radius: 0 0 8px 8px;
+}
+
+/* 自定义抽屉样式 */
+.ant-drawer-header {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ant-drawer-body {
+  padding: 16px;
+}
+
+/* 代码高亮样式 */
+.hljs {
+  background: transparent !important;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in {
+  color: #0066cc;
+}
+
+.hljs-string,
+.hljs-attr {
+  color: #008000;
+}
+
+.hljs-number {
+  color: #cc6600;
+}
+
+.hljs-comment {
+  color: #999;
+  font-style: italic;
+}
+
+/* 深色主题代码高亮 */
+.dark .hljs-keyword,
+.dark .hljs-selector-tag,
+.dark .hljs-built_in {
+  color: #569cd6;
+}
+
+.dark .hljs-string,
+.dark .hljs-attr {
+  color: #ce9178;
+}
+
+.dark .hljs-number {
+  color: #b5cea8;
+}
+
+.dark .hljs-comment {
+  color: #6a9955;
+}

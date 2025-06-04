@@ -97,13 +97,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onCancel }) => {
                   <Form.Item
                     name="username"
                     rules={[
-                      { required: true, message: '请输入用户名' },
-                      { min: 3, message: '用户名至少3个字符' }
+                      { required: true, message: '请输入邮箱' },
+                      { type: 'email', message: '请输入有效的邮箱地址' }
                     ]}
                   >
                     <Input
                       prefix={<UserOutlined />}
-                      placeholder="用户名"
+                      placeholder="邮箱"
                     />
                   </Form.Item>
                   

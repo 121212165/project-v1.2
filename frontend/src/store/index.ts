@@ -114,7 +114,7 @@ export const useAppStore = create<AppStore>()(
 
         login: async (username: string, password: string) => {
           try {
-            const response = await apiService.login({ username, password });
+            const response = await apiService.login({ email: username, password });
             localStorage.setItem('auth_token', response.token);
             
             set((state) => {

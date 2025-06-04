@@ -22,7 +22,7 @@
 #### 新增环境变量
 ```env
 # OpenRouter配置
-OPENROUTER_API_KEY=your_openrouter_api_key_here
+OPENROUTER_API_KEY=8e28ff44-9e3e-4e88-911c-7e0485cf90d3
 OPENROUTER_SITE_URL=https://your-domain.com
 OPENROUTER_SITE_NAME=你的应用名称
 ```

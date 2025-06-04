@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { message } from 'antd';
+// Note: message will be passed as parameter to avoid static usage
 import {
   ApiResponse,
   TextAnalysisRequest,
@@ -11,7 +11,7 @@ import {
 
 // 用户认证相关类型
 export interface LoginRequest {
-  username: string;
+  email: string;
   password: string;
 }
 

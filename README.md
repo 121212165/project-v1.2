@@ -98,7 +98,7 @@ DATABASE_URL=postgresql://username:password@localhost:5432/beauty_ai
 REDIS_URL=redis://localhost:6379
 
 # AI服务配置
-ALI_CLOUD_API_KEY=your-actual-api-key
+ALI_CLOUD_API_KEY=8e28ff44-9e3e-4e88-911c-7e0485cf90d3
 ALI_CLOUD_API_SECRET=your-actual-api-secret
 
 # JWT密钥

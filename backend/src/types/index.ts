@@ -8,6 +8,12 @@ export interface EnvConfig {
   LOG_LEVEL: string;
   JWT_SECRET: string;
   JWT_EXPIRES_IN: string;
+  WECHAT_APP_ID: string;
+  WECHAT_APP_SECRET: string;
+  SMS_ACCESS_KEY_ID: string;
+  SMS_ACCESS_KEY_SECRET: string;
+  SMS_SIGN_NAME: string;
+  SMS_TEMPLATE_CODE: string;
 }
 
 // 用户相关类型
@@ -30,14 +36,48 @@ export interface UserProfile {
 
 // 认证相关类型
 export interface LoginRequest {
-  email: string;
-  password: string;
+  email?: string;
+  phone?: string;
+  password?: string;
+  wechatCode?: string; // 微信授权码
+  loginType: 'email' | 'phone' | 'wechat';
 }
 
 export interface RegisterRequest {
   username: string;
-  email: string;
-  password: string;
+  email?: string;
+  phone?: string;
+  password?: string;
+  wechatCode?: string;
+  nickname?: string;
+  avatar?: string;
+  registerType: 'email' | 'phone' | 'wechat';
+  verificationCode?: string; // 手机验证码
+}
+
+// 微信用户信息
+export interface WechatUserInfo {
+  openid: string;
+  unionid?: string;
+  nickname: string;
+  avatar: string;
+  gender: number;
+}
+
+// 短信验证码
+export interface SmsVerificationRequest {
+  phone: string;
+  type: 'register' | 'login' | 'reset_password';
+}
+
+// 会话信息
+export interface SessionInfo {
+  id: string;
+  deviceInfo?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: Date;
+  expiresAt: Date;
 }
 
 export interface AuthResponse {

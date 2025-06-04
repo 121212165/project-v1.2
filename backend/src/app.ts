@@ -14,6 +14,7 @@ import {
 import analyzeRoutes from './routes/analyze.js';
 import { authRouter } from './routes/auth.js';
 import historyRouter from './routes/history.js';
+import deepseekRouter from './routes/deepseek.js';
 
 // ES模块中获取__dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -61,6 +62,7 @@ if (appConfig.server.isDevelopment) {
 app.use('/api/auth', authRouter);
 app.use('/api/analyze', analyzeRoutes);
 app.use('/api/history', historyRouter);
+app.use('/api/deepseek', deepseekRouter);
 
 // 根路径
 app.get('/', (req, res) => {

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="API集成插件 - 强大的API测试和集成工具" />
+    <meta name="keywords" content="API, 测试, 集成, HTTP, REST, GraphQL" />
+    <meta name="author" content="API Integration Plugin Team" />
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="API集成插件" />
+    <meta property="og:description" content="强大的API测试和集成工具" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://your-domain.com" />
+    <meta property="og:image" content="/og-image.png" />
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="API集成插件" />
+    <meta name="twitter:description" content="强大的API测试和集成工具" />
+    <meta name="twitter:image" content="/twitter-image.png" />
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#1890ff" />
+    
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <title>API集成插件</title>
+    
+    <style>
+      /* 加载动画样式 */
+      .loading-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      
+      .loading-logo {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 24px;
+        animation: pulse 2s infinite;
+      }
+      
+      .loading-text {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        font-size: 16px;
+        color: #666;
+        margin-bottom: 16px;
+      }
+      
+      .loading-spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #1890ff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.7; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      
+      /* 深色主题加载页面 */
+      @media (prefers-color-scheme: dark) {
+        .loading-container {
+          background-color: #141414;
+        }
+        
+        .loading-text {
+          color: #999;
+        }
+        
+        .loading-spinner {
+          border-color: #333;
+          border-top-color: #1890ff;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <!-- 加载页面 -->
+      <div class="loading-container" id="loading">
+        <svg class="loading-logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#1890ff" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="#1890ff" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="#1890ff" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+        <div class="loading-text">API集成插件</div>
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+    
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <script>
+      // 隐藏加载页面
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          const loading = document.getElementById('loading');
+          if (loading) {
+            loading.style.opacity = '0';
+            loading.style.transition = 'opacity 0.3s ease-out';
+            setTimeout(function() {
+              loading.style.display = 'none';
+            }, 300);
+          }
+        }, 500);
+      });
+      
+      // 错误处理
+      window.addEventListener('error', function(e) {
+        console.error('应用加载错误:', e.error);
+        const loading = document.getElementById('loading');
+        if (loading) {
+          loading.innerHTML = `
+            <div style="text-align: center; color: #ff4d4f;">
+              <h3>应用加载失败</h3>
+              <p>请刷新页面重试</p>
+              <button onclick="location.reload()" style="
+                padding: 8px 16px;
+                background: #1890ff;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+              ">刷新页面</button>
+            </div>
+          `;
+        }
+      });
+      
+      // 检查浏览器兼容性
+      if (!window.fetch || !window.Promise || !window.URLSearchParams) {
+        document.getElementById('loading').innerHTML = `
+          <div style="text-align: center; color: #ff4d4f;">
+            <h3>浏览器不兼容</h3>
+            <p>请使用现代浏览器访问此应用</p>
+            <p>推荐使用 Chrome、Firefox、Safari 或 Edge 浏览器</p>
+          </div>
+        `;
+      }
+    </script>
+  </body>
+</html>

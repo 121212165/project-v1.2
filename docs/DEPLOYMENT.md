@@ -57,7 +57,7 @@ git push -u origin main
 4. **环境变量配置**
    在Vercel项目设置中添加以下环境变量：
    ```
-   DASHSCOPE_API_KEY=sk-d0bef4ed52514a8d83b37f1abdc91692
+   DASHSCOPE_API_KEY=8e28ff44-9e3e-4e88-911c-7e0485cf90d3
    PORT=3000
    ```
 
@@ -79,9 +79,9 @@ git push -u origin main
 
 | 变量名 | 说明 | 示例值 |
 |--------|------|--------|
-| OPENAI_API_KEY | OpenAI API密钥 | sk-xxxxxxxxxxxx |
+| OPENAI_API_KEY | OpenAI API密钥 | 8e28ff44-9e3e-4e88-911c-7e0485cf90d3 |
 | OPENAI_BASE_URL | OpenAI API基础URL | https://api.openai.com/v1 |
-| DASHSCOPE_API_KEY | 达摩院灵积API密钥 | sk-xxxxxxxxxxxx |
+| DASHSCOPE_API_KEY | 达摩院灵积API密钥 | 8e28ff44-9e3e-4e88-911c-7e0485cf90d3 |
 | DASHSCOPE_BASE_URL | 达摩院灵积API基础URL | https://dashscope.aliyuncs.com/compatible-mode/v1 |
 | PORT | 服务器端口（Vercel会自动设置） | 3000 |
 

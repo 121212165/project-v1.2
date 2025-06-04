@@ -5,6 +5,10 @@ import { logInfo, logError } from '../utils/logger.js';
 import { PromptService } from './promptService.js';
 import { ConversationService } from './conversationService.js';
 import { CacheService } from './cacheService.js';
+import { IAnalysisService, AnalysisOptions, TextAnalysisRequest, ImageAnalysisRequest, UsageStats, HealthStatus } from './interfaces/IAnalysisService.js';
+import { CostMonitoringService } from './monitoring/CostMonitoringService.js';
+import { PerformanceMonitoringService } from './monitoring/PerformanceMonitoringService.js';
+import { AIServiceFactory } from './factory/AIServiceFactory.js';
 
 // 初始化 OpenRouter API
 const openai = new OpenAI({
@@ -31,7 +35,10 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   backoffFactor: 2
 };
 
-export class AIService {
+export class AIService implements IAnalysisService {
+  private static costMonitoring = new CostMonitoringService();
+  private static performanceMonitoring = new PerformanceMonitoringService();
+  private static factory = new AIServiceFactory();
   /**
    * 文本分析服务（支持缓存和重试）
    */
@@ -46,6 +53,9 @@ export class AIService {
     } = {}
   ): Promise<TextAnalysisResponse> {
     const { sessionId, useCache = true, retryConfig, scenario, userProfile } = options;
+    
+    // 检查成本限制
+    await this.costMonitoring.checkCostLimit(1);
     
     // 检查缓存
     if (useCache) {
@@ -138,6 +148,12 @@ export class AIService {
         );
       }
 
+      // 记录性能指标
+      this.performanceMonitoring.recordApiCall('text_analysis', processingTime, true);
+      
+      // 记录成本
+      await this.costMonitoring.recordApiCall('text_analysis', 1);
+      
       logInfo('文本分析完成', { 
         score: response.score, 
         status: response.status,
@@ -149,6 +165,10 @@ export class AIService {
       
     } catch (error) {
       const processingTime = Date.now() - startTime;
+      
+      // 记录失败的性能指标
+      this.performanceMonitoring.recordApiCall('text_analysis', processingTime, false);
+      
       logError('AI文本分析失败', { error, processingTime, textLength: text.length });
       
       // 记录失败到对话历史
@@ -180,6 +200,9 @@ export class AIService {
     } = {}
   ): Promise<ImageAnalysisResponse> {
     const { sessionId, useCache = true, retryConfig, scenario, userProfile } = options;
+    
+    // 检查成本限制
+    await this.costMonitoring.checkCostLimit(1);
     
     // 生成缓存键
     const cacheKey = CacheService.generateKey('image_analysis', imageUrl + (text || ''));
@@ -328,6 +351,12 @@ export class AIService {
         );
       }
 
+      // 记录性能指标
+      this.performanceMonitoring.recordApiCall('image_analysis', processingTime, true);
+      
+      // 记录成本
+      await this.costMonitoring.recordApiCall('image_analysis', 1);
+      
       logInfo('图文分析完成', { 
         status: response.overallAssessment.status,
         processingTime,
@@ -338,6 +367,10 @@ export class AIService {
       
     } catch (error) {
       const processingTime = Date.now() - startTime;
+      
+      // 记录失败的性能指标
+      this.performanceMonitoring.recordApiCall('image_analysis', processingTime, false);
+      
       logError('AI图文分析失败', { error, processingTime, imageUrl, hasText: !!text });
       
       // 记录失败到对话历史
@@ -589,5 +622,207 @@ export class AIService {
       services,
       latency
     };
+  }
+
+  // 实现IAnalysisService接口的新方法
+  
+  /**
+   * 批量文本分析
+   */
+  static async batchAnalyzeText(
+    requests: TextAnalysisRequest[],
+    options: AnalysisOptions = {}
+  ): Promise<TextAnalysisResponse[]> {
+    const startTime = Date.now();
+    
+    try {
+      // 检查成本限制
+      await this.costMonitoring.checkCostLimit(requests.length);
+      
+      // 并发处理，但限制并发数
+      const concurrencyLimit = 5;
+      const results: TextAnalysisResponse[] = [];
+      
+      for (let i = 0; i < requests.length; i += concurrencyLimit) {
+        const batch = requests.slice(i, i + concurrencyLimit);
+        const batchPromises = batch.map(request => 
+          this.analyzeText(request.text, {
+            sessionId: request.sessionId,
+            useCache: options.useCache,
+            retryConfig: options.retryConfig,
+            scenario: request.scenario,
+            userProfile: request.userProfile
+          })
+        );
+        
+        const batchResults = await Promise.all(batchPromises);
+        results.push(...batchResults);
+      }
+      
+      // 记录性能指标
+      const processingTime = Date.now() - startTime;
+      this.performanceMonitoring.recordApiCall('batch_text_analysis', processingTime, true);
+      
+      // 记录成本
+      await this.costMonitoring.recordApiCall('batch_text_analysis', requests.length);
+      
+      return results;
+      
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      this.performanceMonitoring.recordApiCall('batch_text_analysis', processingTime, false);
+      logError('批量文本分析失败', { error, requestCount: requests.length });
+      throw error;
+    }
+  }
+  
+  /**
+   * 批量图文分析
+   */
+  static async batchAnalyzeImage(
+    requests: ImageAnalysisRequest[],
+    options: AnalysisOptions = {}
+  ): Promise<ImageAnalysisResponse[]> {
+    const startTime = Date.now();
+    
+    try {
+      // 检查成本限制
+      await this.costMonitoring.checkCostLimit(requests.length);
+      
+      // 并发处理，但限制并发数（图片分析更耗资源）
+      const concurrencyLimit = 3;
+      const results: ImageAnalysisResponse[] = [];
+      
+      for (let i = 0; i < requests.length; i += concurrencyLimit) {
+        const batch = requests.slice(i, i + concurrencyLimit);
+        const batchPromises = batch.map(request => 
+          this.analyzeImageAndText(request.imageUrl, request.text, {
+            sessionId: request.sessionId,
+            useCache: options.useCache,
+            retryConfig: options.retryConfig,
+            scenario: request.scenario,
+            userProfile: request.userProfile
+          })
+        );
+        
+        const batchResults = await Promise.all(batchPromises);
+        results.push(...batchResults);
+      }
+      
+      // 记录性能指标
+      const processingTime = Date.now() - startTime;
+      this.performanceMonitoring.recordApiCall('batch_image_analysis', processingTime, true);
+      
+      // 记录成本
+      await this.costMonitoring.recordApiCall('batch_image_analysis', requests.length);
+      
+      return results;
+      
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      this.performanceMonitoring.recordApiCall('batch_image_analysis', processingTime, false);
+      logError('批量图文分析失败', { error, requestCount: requests.length });
+      throw error;
+    }
+  }
+  
+  /**
+   * 获取使用统计
+   */
+  static async getUsageStats(): Promise<UsageStats> {
+    const costStats = await this.costMonitoring.getUsageStats();
+    const performanceStats = this.performanceMonitoring.getPerformanceStats();
+    
+    return {
+      totalRequests: costStats.totalCalls,
+      successfulRequests: performanceStats.totalCalls - performanceStats.failedCalls,
+      failedRequests: performanceStats.failedCalls,
+      averageResponseTime: performanceStats.averageResponseTime,
+      totalCost: costStats.totalCost,
+      cacheHitRate: CacheService.getStats().hitRate,
+      lastUpdated: new Date()
+    };
+  }
+  
+  /**
+   * 检查成本限制
+   */
+  static async checkCostLimit(): Promise<boolean> {
+    try {
+      await this.costMonitoring.checkCostLimit(1);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+  
+  /**
+   * 获取健康状态（重写以包含新的监控信息）
+   */
+  static async getHealthStatus(): Promise<HealthStatus> {
+    const baseHealth = await this.healthCheck();
+    const performanceStats = this.performanceMonitoring.getPerformanceStats();
+    const costStats = await this.costMonitoring.getUsageStats();
+    
+    return {
+      status: baseHealth.status,
+      services: baseHealth.services,
+      latency: baseHealth.latency,
+      performance: {
+        averageResponseTime: performanceStats.averageResponseTime,
+        successRate: performanceStats.successRate,
+        totalRequests: performanceStats.totalCalls
+      },
+      cost: {
+        totalCost: costStats.totalCost,
+        remainingBudget: costStats.remainingBudget,
+        dailyUsage: costStats.dailyUsage
+      },
+      lastChecked: new Date()
+    };
+  }
+  
+  /**
+   * 清理资源（重写以包含新的监控服务）
+   */
+  static async cleanup(): Promise<void> {
+    try {
+      // 清理缓存
+      CacheService.cleanup();
+      
+      // 清理对话会话
+      ConversationService.cleanup();
+      
+      // 清理监控服务
+      this.performanceMonitoring.cleanup();
+      
+      // 清理工厂
+      await this.factory.cleanup();
+      
+      logInfo('AI服务清理完成');
+    } catch (error) {
+      logError('AI服务清理失败', error);
+    }
+  }
+  
+  /**
+   * 获取服务工厂实例
+   */
+  static getFactory(): AIServiceFactory {
+    return this.factory;
+  }
+  
+  /**
+   * 获取成本监控服务实例
+   */
+  static getCostMonitoring(): CostMonitoringService {
+    return this.costMonitoring;
+  }
+  
+  /**
+   * 获取性能监控服务实例
+   */
+  static getPerformanceMonitoring(): PerformanceMonitoringService {
+    return this.performanceMonitoring;
   }
 }

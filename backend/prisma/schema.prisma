@@ -45,16 +45,25 @@ enum ConfigType {
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique
-  email     String   @unique
-  password  String
+  email     String?  @unique // 邮箱可选，支持微信注册
+  password  String?  // 密码可选，支持微信登录
+  phone     String?  @unique // 手机号
+  wechatId  String?  @unique @map("wechat_id") // 微信openid
+  wechatUnionId String? @map("wechat_union_id") // 微信unionid
+  avatar    String?  // 头像URL
+  nickname  String?  // 昵称
+  gender    Int?     // 性别：0未知，1男，2女
   role      UserRole @default(USER)
   isActive  Boolean  @default(true)
+  lastLoginAt DateTime? @map("last_login_at") // 最后登录时间
+  loginCount Int @default(0) @map("login_count") // 登录次数
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // 关系
   analysisTasks AnalysisTask[]
   apiLogs       ApiLog[]
+  userSessions  UserSession[]
 
   @@map("users")
 }
@@ -118,4 +127,23 @@ model ApiLog {
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("api_logs")
+}
+
+// 用户会话表
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    Int      @map("user_id")
+  token     String   @unique // JWT token或session token
+  deviceInfo String? @map("device_info") // 设备信息
+  ipAddress String?  @map("ip_address") // IP地址
+  userAgent String?  @map("user_agent") // 用户代理
+  isActive  Boolean  @default(true) @map("is_active")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // 关联用户
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
 }

@@ -64,7 +64,18 @@ export const logInfo = (message: string, meta?: any): void => {
 };
 
 export const logError = (message: string, error?: Error | any): void => {
-  logger.error(message, { error: error?.stack || error });
+  if (error) {
+    logger.error(message, { 
+      error: error?.stack || error,
+      message: error?.message,
+      name: error?.name,
+      response: error?.response?.data,
+      status: error?.response?.status,
+      statusText: error?.response?.statusText
+    });
+  } else {
+    logger.error(message);
+  }
 };
 
 export const logWarn = (message: string, meta?: any): void => {

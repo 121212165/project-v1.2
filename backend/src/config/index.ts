@@ -9,12 +9,18 @@ function validateEnv(): EnvConfig {
   const requiredEnvVars = {
     NODE_ENV: process.env.NODE_ENV || 'development',
     PORT: parseInt(process.env.PORT || '3000', 10),
-    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || 'demo-key',
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || '8e28ff44-9e3e-4e88-911c-7e0485cf90d3',
     OPENROUTER_SITE_URL: process.env.OPENROUTER_SITE_URL || 'https://beauty-ai-assistant.com',
     OPENROUTER_SITE_NAME: process.env.OPENROUTER_SITE_NAME || '美妆AI助手',
     LOG_LEVEL: process.env.LOG_LEVEL || 'info',
     JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production',
-    JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d'
+    JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+    WECHAT_APP_ID: process.env.WECHAT_APP_ID || '',
+    WECHAT_APP_SECRET: process.env.WECHAT_APP_SECRET || '',
+    SMS_ACCESS_KEY_ID: process.env.SMS_ACCESS_KEY_ID || '',
+    SMS_ACCESS_KEY_SECRET: process.env.SMS_ACCESS_KEY_SECRET || '',
+    SMS_SIGN_NAME: process.env.SMS_SIGN_NAME || '美妆AI助手',
+    SMS_TEMPLATE_CODE: process.env.SMS_TEMPLATE_CODE || ''
   };
 
   // 在开发环境中，如果没有配置OPENROUTER_API_KEY，给出警告
@@ -113,5 +119,31 @@ export const appConfig = {
   // 密码加密配置
   bcrypt: {
     saltRounds: 12
+  },
+
+  // 微信配置
+  wechat: {
+    appId: config.WECHAT_APP_ID,
+    appSecret: config.WECHAT_APP_SECRET,
+    enabled: !!(config.WECHAT_APP_ID && config.WECHAT_APP_SECRET)
+  },
+
+  // 短信服务配置
+  sms: {
+    accessKeyId: config.SMS_ACCESS_KEY_ID,
+    accessKeySecret: config.SMS_ACCESS_KEY_SECRET,
+    signName: config.SMS_SIGN_NAME,
+    templateCode: config.SMS_TEMPLATE_CODE,
+    enabled: !!(config.SMS_ACCESS_KEY_ID && config.SMS_ACCESS_KEY_SECRET)
+  },
+
+  // 会话管理配置
+  session: {
+    maxActiveSessions: 5, // 每个用户最多5个活跃会话
+    cleanupInterval: 60 * 60 * 1000, // 1小时清理一次过期会话
+    extendOnActivity: true // 活动时自动延长会话
   }
 };
+
+// 环境变量类型定义
+export const env = config.NODE_ENV;

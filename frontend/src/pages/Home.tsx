@@ -26,7 +26,8 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   BarChartOutlined,
-  BellOutlined
+  BellOutlined,
+  RobotOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore, useUI, useHistory, useAuth } from '@/store';
@@ -199,7 +200,7 @@ const Home: React.FC = () => {
                 size="small" 
                 title="快速导航" 
                 style={{ marginBottom: '16px' }}
-                bodyStyle={{ padding: '8px' }}
+                styles={{ body: { padding: '8px' } }}
               >
                 <Space direction="vertical" style={{ width: '100%' }} size="small">
                   <Button
@@ -210,6 +211,15 @@ const Home: React.FC = () => {
                     onClick={() => navigate('/')}
                   >
                     首页
+                  </Button>
+                  <Button
+                    type="text"
+                    icon={<RobotOutlined />}
+                    block
+                    style={{ textAlign: 'left' }}
+                    onClick={() => navigate('/deepseek')}
+                  >
+                    DeepSeek R1
                   </Button>
                   <Button
                     type="text"

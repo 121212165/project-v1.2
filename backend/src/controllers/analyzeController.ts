@@ -1,112 +1,52 @@
+// 导入必要的模块
 import { Request, Response } from 'express';
-import { AIService } from '../services/aiService.js';
-import { AnalysisTaskService } from '../services/analysisTaskService.js';
-import { ConversationService } from '../services/conversationService.js';
+import { 
+  AIService, 
+  IAnalysisService, 
+  TextAnalysisRequest, 
+  ImageAnalysisRequest,
+  AnalysisTaskService,
+  ConversationService 
+} from '../services/index.js';
 import { logInfo, logError } from '../utils/logger.js';
 import { TextAnalysisResponse, ImageAnalysisResponse } from '../types/index.js';
 import path from 'path';
 import fs from 'fs/promises';
+import { config } from '../config/analysis.config.js';
+import { ResponseHandler } from '../utils/responseHandler.js';
+import { InputValidator } from '../utils/inputValidator.js';
+import { FileHandler } from '../utils/fileHandler.js';
+import { AnalysisTaskHandler } from '../utils/analysisTaskHandler.js';
+import { SessionManager } from '../utils/sessionManager.js';
+import { HealthChecker } from '../utils/healthChecker.js';
 
-const analysisTaskService = new AnalysisTaskService();
-const MAX_TEXT_LENGTH = 10000;
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-
+// 配置模块
+// 响应处理模块
+// 输入验证模块
+// 文件处理模块
+// 分析任务模块
+// 会话管理模块
+// 健康检查模块
 /**
  * 文本分析控制器（支持多轮对话）
  */
 export const analyzeText = async (req: Request, res: Response): Promise<void> => {
+  const responseHandler = new ResponseHandler(res);
+  const taskHandler = new AnalysisTaskHandler();
+  
   try {
     const { text, sessionId, scenario, useCache = true } = req.body;
     const userId = req.user?.id || 'anonymous';
 
-    if (!text || typeof text !== 'string') {
-      res.status(400).json({
-        success: false,
-        message: '请提供有效的文本内容'
-      });
-      return;
+    if (!InputValidator.validateText(text)) {
+      return responseHandler.badRequest('请提供有效的文本内容');
     }
 
-    // 成本控制检查
-    const costCheck = await AIService.checkCostLimits(userId);
-    if (!costCheck.allowed) {
-      res.status(429).json({
-        success: false,
-        message: costCheck.reason || '已达到使用限制',
-        usage: costCheck.usage
-      });
-      return;
-    }
-
-    logInfo('开始文本分析', { 
-      userId, 
-      textLength: text.length, 
-      sessionId,
-      scenario,
-      useCache 
-    });
-
-    // 创建分析任务
-    const task = await AnalysisTaskService.createTask({
-      userId,
-      type: 'text',
-      content: text,
-      status: 'processing',
-      metadata: { sessionId, scenario }
-    });
-
-    try {
-      let result: TextAnalysisResponse;
-      
-      if (sessionId) {
-        // 多轮对话分析
-        result = await AIService.analyzeConversation(
-          sessionId,
-          text,
-          'text',
-          undefined,
-          { useCache }
-        ) as TextAnalysisResponse;
-      } else {
-        // 单次分析
-        result = await AIService.analyzeText(text, {
-          useCache,
-          scenario
-        });
-      }
-
-      // 更新任务状态
-      await AnalysisTaskService.updateTaskStatus(task.id, 'completed', result);
-
-      res.json({
-        success: true,
-        data: {
-          taskId: task.id,
-          result,
-          sessionId: sessionId || undefined
-        }
-      });
-
-      logInfo('文本分析完成', { 
-        userId, 
-        taskId: task.id, 
-        score: result.score,
-        sessionId 
-      });
-    } catch (error) {
-      // 更新任务状态为失败
-      await AnalysisTaskService.updateTaskStatus(task.id, 'failed', {
-        error: error instanceof Error ? error.message : '分析失败'
-      });
-      throw error;
-    }
+    await taskHandler.checkCostLimits(userId);
+    await taskHandler.handleTextAnalysis(userId, text, sessionId, scenario, useCache);
+    
   } catch (error) {
-    logError('文本分析失败', error);
-    res.status(500).json({
-      success: false,
-      message: '文本分析失败，请稍后重试'
-    });
+    responseHandler.handleError(error, '文本分析失败');
   }
 };
 
@@ -114,325 +54,122 @@ export const analyzeText = async (req: Request, res: Response): Promise<void> =>
  * 图文分析控制器（支持多轮对话）
  */
 export const analyzeImageText = async (req: Request, res: Response): Promise<void> => {
+  const responseHandler = new ResponseHandler(res);
+  const fileHandler = new FileHandler();
+  const taskHandler = new AnalysisTaskHandler();
+
   try {
     const { text, sessionId, scenario, useCache = true } = req.body;
     const imageFile = req.file;
     const userId = req.user?.id || 'anonymous';
 
-    if (!imageFile) {
-      res.status(400).json({
-        success: false,
-        message: '请上传图片文件'
-      });
-      return;
+    if (!InputValidator.validateImage(imageFile)) {
+      return responseHandler.badRequest('请上传有效的图片文件(JPEG/PNG/GIF/WebP, <10MB)');
     }
 
-    if (!ALLOWED_IMAGE_TYPES.includes(imageFile.mimetype)) {
-      res.status(400).json({
-        success: false,
-        message: '不支持的图片格式，请上传 JPEG、PNG、GIF 或 WebP 格式的图片'
-      });
-      return;
-    }
+    await taskHandler.checkCostLimits(userId);
+    const savedFilePath = await fileHandler.saveImage(userId, imageFile);
+    await taskHandler.handleImageAnalysis(userId, text, imageFile, savedFilePath, sessionId, scenario, useCache);
 
-    if (imageFile.size > MAX_IMAGE_SIZE) {
-      res.status(400).json({
-        success: false,
-        message: '图片文件过大，请上传小于10MB的图片'
-      });
-      return;
-    }
+  } catch (error) {
+    responseHandler.handleError(error, '图文分析失败');
+  }
+};
 
-    // 成本控制检查
-    const costCheck = await AIService.checkCostLimits(userId);
-    if (!costCheck.allowed) {
-      res.status(429).json({
-        success: false,
-        message: costCheck.reason || '已达到使用限制',
-        usage: costCheck.usage
-      });
-      return;
-    }
-
-    logInfo('开始图文分析', {
-      userId,
-      hasText: !!text,
-      imageInfo: { size: imageFile.size, type: imageFile.mimetype },
-      sessionId,
-      scenario,
-      useCache
-    });
-
-    // 保存图片文件（如果需要）
-    let savedFilePath: string | undefined;
-    if (userId !== 'anonymous') {
-      const uploadsDir = path.join(process.cwd(), 'uploads', 'images');
-      await fs.mkdir(uploadsDir, { recursive: true });
-      
-      const fileName = `${userId}_${Date.now()}_${Math.random().toString(36).slice(2)}${path.extname(imageFile.originalname) || '.jpg'}`;
-      savedFilePath = path.join(uploadsDir, fileName);
-      await fs.writeFile(savedFilePath, imageFile.buffer);
-    }
-
-    // 创建分析任务
-    const task = await AnalysisTaskService.createTask({
-      userId,
-      type: 'image',
-      content: text || '图片分析',
-      status: 'processing',
-      metadata: { 
-        imagePath: savedFilePath,
-        sessionId,
-        scenario,
-        imageInfo: {
-          size: imageFile.size,
-          type: imageFile.mimetype,
-          originalName: imageFile.originalname
-        }
-      }
-    });
+/**
+ * 会话相关控制器
+ */
+export const sessionController = {
+  createSession: async (req: Request, res: Response): Promise<void> => {
+    const sessionManager = new SessionManager();
+    const responseHandler = new ResponseHandler(res);
 
     try {
-      // 将图片转换为base64格式
-      const imageBase64 = `data:${imageFile.mimetype};base64,${imageFile.buffer.toString('base64')}`;
-      
-      let result: ImageAnalysisResponse;
-      
-      if (sessionId) {
-        // 多轮对话分析
-        result = await AIService.analyzeConversation(
-          sessionId,
-          text || '请分析这张图片',
-          'image',
-          imageBase64,
-          { useCache }
-        ) as ImageAnalysisResponse;
-      } else {
-        // 单次分析
-        result = await AIService.analyzeImageAndText(imageBase64, text, {
-          useCache,
-          scenario
-        });
-      }
-
-      // 更新任务状态
-      await AnalysisTaskService.updateTaskStatus(task.id, 'completed', result);
-
-      res.json({
-        success: true,
-        data: {
-          taskId: task.id,
-          result,
-          sessionId: sessionId || undefined
-        }
-      });
-
-      logInfo('图文分析完成', {
-        userId,
-        taskId: task.id,
-        status: result.status,
-        sessionId
-      });
-
+      const { userId } = req.body;
+      const actualUserId = userId || req.user?.id || 'anonymous';
+      await sessionManager.createNewSession(actualUserId, responseHandler);
     } catch (error) {
-      // 更新任务状态为失败
-      await AnalysisTaskService.updateTaskStatus(task.id, 'failed', {
-        error: error instanceof Error ? error.message : '分析失败'
-      });
-      
-      // 清理已保存的文件
-      if (savedFilePath) {
-        await fs.unlink(savedFilePath).catch(err => logError('清理文件失败', err));
-      }
-      
-      throw error;
+      responseHandler.handleError(error, '创建会话失败');
     }
-  } catch (error) {
-    logError('图文分析失败', error);
-    res.status(500).json({
-      success: false,
-      message: '图文分析失败，请稍后重试'
-    });
-  }
-};
+  },
 
-/**
- * 创建对话会话
- */
-export const createSession = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId } = req.body;
-    const actualUserId = userId || req.user?.id || 'anonymous';
-    
-    const sessionId = ConversationService.createSession(actualUserId, 'beauty_analysis');
-    
-    res.json({
-      success: true,
-      data: {
-        sessionId,
-        createdAt: new Date().toISOString()
-      }
-    });
-    
-    logInfo('创建对话会话', { sessionId, userId: actualUserId });
-  } catch (error) {
-    logError('创建会话失败', error);
-    res.status(500).json({
-      success: false,
-      message: '创建会话失败，请稍后重试'
-    });
-  }
-};
+  getConversationHistory: async (req: Request, res: Response): Promise<void> => {
+    const sessionManager = new SessionManager();
+    const responseHandler = new ResponseHandler(res);
 
-/**
- * 获取对话历史
- */
-export const getConversationHistory = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { sessionId } = req.params;
-    const { limit = 50, offset = 0 } = req.query;
-    
-    if (!sessionId) {
-      res.status(400).json({
-        success: false,
-        message: '请提供会话ID'
-      });
-      return;
+    try {
+      const { sessionId } = req.params;
+      const { limit = 50, offset = 0 } = req.query;
+      await sessionManager.getHistory(sessionId, Number(limit), Number(offset), responseHandler);
+    } catch (error) {
+      responseHandler.handleError(error, '获取对话历史失败');
     }
-    
-    const history = ConversationService.getConversationHistory(
-      sessionId,
-      Number(limit),
-      Number(offset)
-    );
-    
-    const session = ConversationService.getSession(sessionId);
-    
-    res.json({
-      success: true,
-      data: {
-        sessionId,
-        messages: history,
-        session: session ? {
-          createdAt: session.createdAt,
-          lastActivity: session.lastActivity,
-          messageCount: session.messages.length
-        } : null
-      }
-    });
-  } catch (error) {
-    logError('获取对话历史失败', error);
-    res.status(500).json({
-      success: false,
-      message: '获取对话历史失败，请稍后重试'
-    });
-  }
-};
+  },
 
-/**
- * 获取用户会话列表
- */
-export const getUserSessions = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user?.id || 'anonymous';
-    const sessions = ConversationService.getUserSessions(userId);
-    
-    res.json({
-      success: true,
-      data: {
-        sessions: sessions.map(session => ({
-          sessionId: session.sessionId,
-          createdAt: session.createdAt,
-          lastActivity: session.lastActivity,
-          messageCount: session.messages.length,
-          context: session.context
-        }))
-      }
-    });
-  } catch (error) {
-    logError('获取用户会话失败', error);
-    res.status(500).json({
-      success: false,
-      message: '获取用户会话失败，请稍后重试'
-    });
-  }
-};
+  getUserSessions: async (req: Request, res: Response): Promise<void> => {
+    const sessionManager = new SessionManager();
+    const responseHandler = new ResponseHandler(res);
 
-/**
- * 获取AI服务统计信息
- */
-export const getServiceStats = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const stats = AIService.getUsageStats();
-    
-    res.json({
-      success: true,
-      data: stats
-    });
-  } catch (error) {
-    logError('获取服务统计失败', error);
-    res.status(500).json({
-      success: false,
-      message: '获取服务统计失败，请稍后重试'
-    });
-  }
-};
-
-/**
- * 健康检查控制器
- */
-export const healthCheck = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const healthResult = await AIService.healthCheck();
-    
-    const healthStatus = {
-      ...healthResult,
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      memory: process.memoryUsage()
-    };
-
-    if (healthResult.status === 'unhealthy') {
-      res.status(503).json({
-        success: false,
-        data: healthStatus,
-        message: 'AI服务不可用'
-      });
-      return;
+    try {
+      const userId = req.user?.id || 'anonymous';
+      await sessionManager.getUserSessionList(userId, responseHandler);
+    } catch (error) {
+      responseHandler.handleError(error, '获取用户会话失败');
     }
-
-    res.json({
-      success: true,
-      data: healthStatus,
-      message: '服务运行正常'
-    });
-  } catch (error) {
-    logError('健康检查失败', error);
-    res.status(500).json({
-      success: false,
-      message: '健康检查失败，请稍后重试'
-    });
   }
 };
 
 /**
- * 清理服务数据
+ * 系统管理控制器
  */
-export const cleanupService = async (req: Request, res: Response): Promise<void> => {
-  try {
-    await AIService.cleanup();
+export const systemController = {
+  getServiceStats: async (req: Request, res: Response): Promise<void> => {
+    const responseHandler = new ResponseHandler(res);
+    try {
+      const stats = await AIService.getUsageStats();
+      responseHandler.success(stats);
+    } catch (error) {
+      responseHandler.handleError(error, '获取服务统计失败');
+    }
+  },
+
+  healthCheck: async (req: Request, res: Response): Promise<void> => {
+    const responseHandler = new ResponseHandler(res);
     
-    res.json({
-      success: true,
-      message: '服务清理完成'
-    });
-    
-    logInfo('手动触发服务清理');
-  } catch (error) {
-    logError('服务清理失败', error);
-    res.status(500).json({
-      success: false,
-      message: '服务清理失败，请稍后重试'
-    });
+    try {
+      const healthStatus = await HealthChecker.performHealthCheck();
+      responseHandler.success(healthStatus, '健康检查完成');
+    } catch (error) {
+      responseHandler.handleError(error, '健康检查失败');
+    }
+  },
+
+  cleanupService: async (req: Request, res: Response): Promise<void> => {
+    const responseHandler = new ResponseHandler(res);
+    try {
+      await AIService.cleanup();
+      responseHandler.success(null, '服务清理完成');
+      logInfo('手动触发服务清理');
+    } catch (error) {
+      responseHandler.handleError(error, '服务清理失败');
+    }
   }
 };
+
+// 导出独立的cleanupService函数
+export const cleanupService = systemController.cleanupService;
+
+// 导出独立的createSession函数
+export const createSession = sessionController.createSession;
+
+// 导出独立的getConversationHistory函数
+export const getConversationHistory = sessionController.getConversationHistory;
+
+// 导出独立的getUserSessions函数
+export const getUserSessions = sessionController.getUserSessions;
+
+// 导出独立的getServiceStats函数
+export const getServiceStats = systemController.getServiceStats;
+
+// 导出独立的healthCheck函数
+export const healthCheck = systemController.healthCheck;

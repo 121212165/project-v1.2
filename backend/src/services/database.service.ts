@@ -33,6 +33,19 @@ export class DatabaseService {
   async queryRaw(sql: string, ...values: any[]): Promise<any> {
     return await this.prisma.$queryRaw`${sql}`;
   }
+
+  /**
+   * 数据库健康检查
+   */
+  static async healthCheck(): Promise<void> {
+    try {
+      // 执行简单的数据库查询来检查连接
+      await prisma.$queryRaw`SELECT 1`;
+    } catch (error) {
+      logger.error('Database health check failed:', error);
+      throw new Error('数据库连接失败');
+    }
+  }
 }
 
 /**
