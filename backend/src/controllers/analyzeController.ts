@@ -1,175 +1,179 @@
-// 导入必要的模块
 import { Request, Response } from 'express';
-import { 
-  AIService, 
-  IAnalysisService, 
-  TextAnalysisRequest, 
-  ImageAnalysisRequest,
-  AnalysisTaskService,
-  ConversationService 
-} from '../services/index.js';
-import { logInfo, logError } from '../utils/logger.js';
-import { TextAnalysisResponse, ImageAnalysisResponse } from '../types/index.js';
-import path from 'path';
+import OpenAI from 'openai';
+import multer from 'multer';
 import fs from 'fs/promises';
-import { config } from '../config/analysis.config.js';
-import { ResponseHandler } from '../utils/responseHandler.js';
-import { InputValidator } from '../utils/inputValidator.js';
-import { FileHandler } from '../utils/fileHandler.js';
-import { AnalysisTaskHandler } from '../utils/analysisTaskHandler.js';
-import { SessionManager } from '../utils/sessionManager.js';
-import { HealthChecker } from '../utils/healthChecker.js';
+import path from 'path';
+import { config } from '../config/index.js';
+import { PromptService } from '../services/promptService.js';
+import { CacheService } from '../services/cacheService.js';
+import { ConversationService } from '../services/conversationService.js';
+import { logInfo, logError } from '../utils/logger.js';
+import { ApiResponse, TextAnalysisResponse, ImageAnalysisResponse } from '../types/index.js';
 
-// 配置模块
-// 响应处理模块
-// 输入验证模块
-// 文件处理模块
-// 分析任务模块
-// 会话管理模块
-// 健康检查模块
-/**
- * 文本分析控制器（支持多轮对话）
- */
-export const analyzeText = async (req: Request, res: Response): Promise<void> => {
-  const responseHandler = new ResponseHandler(res);
-  const taskHandler = new AnalysisTaskHandler();
-  
+const openai = new OpenAI({
+  apiKey: config.AI_API_KEY,
+  baseURL: config.AI_BASE_URL,
+  defaultHeaders: {
+    'HTTP-Referer': 'https://beauty-ai-assistant.com',
+    'X-Title': '美妆AI助手',
+  },
+});
+
+const RETRY_CONFIG = { maxAttempts: 3, baseDelay: 1000, maxDelay: 10000, backoffFactor: 2 };
+
+async function executeWithRetry<T>(op: () => Promise<T>, cfg = RETRY_CONFIG): Promise<T> {
+  let lastErr: Error;
+  for (let i = 1; i <= cfg.maxAttempts; i++) {
+    try { return await op(); } catch (e) {
+      lastErr = e as Error;
+      if (i === cfg.maxAttempts) break;
+      const delay = Math.min(cfg.baseDelay * Math.pow(cfg.backoffFactor, i - 1), cfg.maxDelay);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  throw lastErr!;
+}
+
+function determineStatus(score: number): 'compliant' | 'warning' | 'violation' {
+  if (score >= 80) return 'compliant';
+  if (score >= 60) return 'warning';
+  return 'violation';
+}
+
+export const analyzeText = async (req: Request, res: Response<ApiResponse>): Promise<void> => {
   try {
     const { text, sessionId, scenario, useCache = true } = req.body;
-    const userId = req.user?.id || 'anonymous';
+    if (!text?.trim()) { res.status(400).json({ success: false, error: '请提供有效的文本内容' }); return; }
 
-    if (!InputValidator.validateText(text)) {
-      return responseHandler.badRequest('请提供有效的文本内容');
+    const cacheKey = CacheService.generateKey('text_analysis', text);
+    if (useCache) {
+      const cached = CacheService.get<TextAnalysisResponse>(cacheKey);
+      if (cached) { res.json({ success: true, data: cached }); return; }
     }
 
-    await taskHandler.checkCostLimits(userId);
-    await taskHandler.handleTextAnalysis(userId, text, sessionId, scenario, useCache);
-    
+    const systemPrompt = sessionId
+      ? ConversationService.generateContextAwarePrompt(sessionId, text)
+      : scenario ? PromptService.getScenarioPrompt(scenario) : PromptService.getTextAnalysisPrompt();
+
+    const result = await executeWithRetry(async () => {
+      const resp = await openai.chat.completions.create({
+        model: config.AI_MODEL,
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: `请分析这段美妆文案：\n\n${text}` }],
+        temperature: 0.7, max_tokens: 2000,
+      });
+      return resp.choices[0].message.content || '';
+    });
+
+    const cleaned = PromptService.validateAndCleanResponse(result);
+    const analysisResult = JSON.parse(cleaned);
+    const response: TextAnalysisResponse = {
+      status: determineStatus(analysisResult.compliance?.score || 0),
+      score: analysisResult.compliance?.score || 0,
+      errors: analysisResult.errors || [],
+      suggestions: analysisResult.suggestions || [],
+      compliance: analysisResult.compliance || { score: 0, issues: [] },
+      resources: analysisResult.resources || []
+    };
+
+    if (useCache) CacheService.set(cacheKey, response, 30 * 60 * 1000);
+    if (sessionId) {
+      ConversationService.addMessage(sessionId, 'user', text);
+      ConversationService.addMessage(sessionId, 'assistant', `分析完成，合规评分：${response.score}分`);
+    }
+
+    logInfo('文本分析完成', { score: response.score, status: response.status });
+    res.json({ success: true, data: response });
   } catch (error) {
-    responseHandler.handleError(error, '文本分析失败');
+    logError('文本分析失败', error);
+    res.status(500).json({ success: false, error: 'AI分析服务暂时不可用，请稍后重试' });
   }
 };
 
-/**
- * 图文分析控制器（支持多轮对话）
- */
-export const analyzeImageText = async (req: Request, res: Response): Promise<void> => {
-  const responseHandler = new ResponseHandler(res);
-  const fileHandler = new FileHandler();
-  const taskHandler = new AnalysisTaskHandler();
-
+export const analyzeImageText = async (req: Request, res: Response<ApiResponse>): Promise<void> => {
   try {
     const { text, sessionId, scenario, useCache = true } = req.body;
     const imageFile = req.file;
-    const userId = req.user?.id || 'anonymous';
+    if (!imageFile) { res.status(400).json({ success: false, error: '请上传图片' }); return; }
 
-    if (!InputValidator.validateImage(imageFile)) {
-      return responseHandler.badRequest('请上传有效的图片文件(JPEG/PNG/GIF/WebP, <10MB)');
+    const base64 = imageFile.buffer.toString('base64');
+    const imageUrl = `data:${imageFile.mimetype};base64,${base64}`;
+    const cacheKey = CacheService.generateKey('image_analysis', imageUrl + (text || ''));
+
+    if (useCache) {
+      const cached = CacheService.get<ImageAnalysisResponse>(cacheKey);
+      if (cached) { res.json({ success: true, data: cached }); return; }
     }
 
-    await taskHandler.checkCostLimits(userId);
-    const savedFilePath = await fileHandler.saveImage(userId, imageFile);
-    await taskHandler.handleImageAnalysis(userId, text, imageFile, savedFilePath, sessionId, scenario, useCache);
+    const systemPrompt = sessionId
+      ? ConversationService.generateContextAwarePrompt(sessionId, `图片分析${text ? `：${text}` : ''}`)
+      : scenario ? PromptService.getScenarioPrompt(scenario) : PromptService.getImageAnalysisPrompt();
 
+    const result = await executeWithRetry(async () => {
+      const userContent: any[] = [{ type: "image_url", image_url: { url: imageUrl } }];
+      userContent.push({ type: "text", text: text ? `请分析这张美妆图片和以下文案：\n\n${text}` : "请分析这张美妆图片的质量和内容" });
+      const resp = await openai.chat.completions.create({
+        model: config.AI_MODEL,
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userContent }],
+        temperature: 0.7, max_tokens: 2000,
+      });
+      return resp.choices[0].message.content || '';
+    });
+
+    const cleaned = PromptService.validateAndCleanResponse(result);
+    const analysisResult = JSON.parse(cleaned);
+    const response: ImageAnalysisResponse = {
+      imageAnalysis: analysisResult.imageAnalysis || { objects: [], inappropriate: false, confidence: 0 },
+      overallAssessment: analysisResult.overallAssessment || { status: 'compliant', recommendations: [] }
+    };
+
+    if (useCache) CacheService.set(cacheKey, response, 60 * 60 * 1000);
+    logInfo('图文分析完成', { status: response.overallAssessment.status });
+    res.json({ success: true, data: response });
   } catch (error) {
-    responseHandler.handleError(error, '图文分析失败');
+    logError('图文分析失败', error);
+    res.status(500).json({ success: false, error: 'AI图文分析服务暂时不可用，请稍后重试' });
   }
 };
 
-/**
- * 会话相关控制器
- */
-export const sessionController = {
-  createSession: async (req: Request, res: Response): Promise<void> => {
-    const sessionManager = new SessionManager();
-    const responseHandler = new ResponseHandler(res);
-
-    try {
-      const { userId } = req.body;
-      const actualUserId = userId || req.user?.id || 'anonymous';
-      await sessionManager.createNewSession(actualUserId, responseHandler);
-    } catch (error) {
-      responseHandler.handleError(error, '创建会话失败');
-    }
-  },
-
-  getConversationHistory: async (req: Request, res: Response): Promise<void> => {
-    const sessionManager = new SessionManager();
-    const responseHandler = new ResponseHandler(res);
-
-    try {
-      const { sessionId } = req.params;
-      const { limit = 50, offset = 0 } = req.query;
-      await sessionManager.getHistory(sessionId, Number(limit), Number(offset), responseHandler);
-    } catch (error) {
-      responseHandler.handleError(error, '获取对话历史失败');
-    }
-  },
-
-  getUserSessions: async (req: Request, res: Response): Promise<void> => {
-    const sessionManager = new SessionManager();
-    const responseHandler = new ResponseHandler(res);
-
-    try {
-      const userId = req.user?.id || 'anonymous';
-      await sessionManager.getUserSessionList(userId, responseHandler);
-    } catch (error) {
-      responseHandler.handleError(error, '获取用户会话失败');
-    }
+export const createSession = async (req: Request, res: Response<ApiResponse>): Promise<void> => {
+  try {
+    const userId = req.body.userId || req.user?.id;
+    const sessionId = ConversationService.createSession(userId);
+    res.json({ success: true, data: { sessionId } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: '创建会话失败' });
   }
 };
 
-/**
- * 系统管理控制器
- */
-export const systemController = {
-  getServiceStats: async (req: Request, res: Response): Promise<void> => {
-    const responseHandler = new ResponseHandler(res);
-    try {
-      const stats = await AIService.getUsageStats();
-      responseHandler.success(stats);
-    } catch (error) {
-      responseHandler.handleError(error, '获取服务统计失败');
-    }
-  },
-
-  healthCheck: async (req: Request, res: Response): Promise<void> => {
-    const responseHandler = new ResponseHandler(res);
-    
-    try {
-      const healthStatus = await HealthChecker.performHealthCheck();
-      responseHandler.success(healthStatus, '健康检查完成');
-    } catch (error) {
-      responseHandler.handleError(error, '健康检查失败');
-    }
-  },
-
-  cleanupService: async (req: Request, res: Response): Promise<void> => {
-    const responseHandler = new ResponseHandler(res);
-    try {
-      await AIService.cleanup();
-      responseHandler.success(null, '服务清理完成');
-      logInfo('手动触发服务清理');
-    } catch (error) {
-      responseHandler.handleError(error, '服务清理失败');
-    }
+export const getConversationHistory = async (req: Request, res: Response<ApiResponse>): Promise<void> => {
+  try {
+    const messages = ConversationService.getConversationHistory(req.params.sessionId, 50);
+    res.json({ success: true, data: { messages } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: '获取对话历史失败' });
   }
 };
 
-// 导出独立的cleanupService函数
-export const cleanupService = systemController.cleanupService;
+export const getUserSessions = async (req: Request, res: Response<ApiResponse>): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) { res.json({ success: true, data: { sessions: [] } }); return; }
+    const sessions = ConversationService.getUserSessions(userId);
+    res.json({ success: true, data: { sessions } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: '获取用户会话失败' });
+  }
+};
 
-// 导出独立的createSession函数
-export const createSession = sessionController.createSession;
+export const getServiceStats = async (req: Request, res: Response<ApiResponse>): Promise<void> => {
+  res.json({ success: true, data: { cacheStats: CacheService.getStats() } });
+};
 
-// 导出独立的getConversationHistory函数
-export const getConversationHistory = sessionController.getConversationHistory;
+export const healthCheck = async (req: Request, res: Response<ApiResponse>): Promise<void> => {
+  res.json({ success: true, data: { status: 'healthy', timestamp: new Date().toISOString() } });
+};
 
-// 导出独立的getUserSessions函数
-export const getUserSessions = sessionController.getUserSessions;
-
-// 导出独立的getServiceStats函数
-export const getServiceStats = systemController.getServiceStats;
-
-// 导出独立的healthCheck函数
-export const healthCheck = systemController.healthCheck;
+export const cleanupService = async (req: Request, res: Response<ApiResponse>): Promise<void> => {
+  CacheService.clear();
+  res.json({ success: true, message: '服务清理完成' });
+};
